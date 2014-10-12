@@ -1,0 +1,59 @@
+%This model is created to mimic the insulin secretion in a single islet cell.
+%15mmol/L in an experiment, here we give the glucose concentration after meal.
+G = 15;
+%Here we assume the basal ratio and concentration of ATP/ADP.
+x0 = 4; p = 10;
+%Here we give the change in the ATP induced by glucose; time is in unit of 0.01min.
+a = 0.02; b = 10;
+d = a*G/(G+b);
+%Here we give the threshold of K+ closure;
+Ra = 6.5;
+%Here we introduce parameters concerning Ca2+ influx;
+c = 100;
+c0 = 100;
+c1 = 0.5;
+c2 = 0.05;
+c3 = 0.98;
+h = 0.0001;
+q = 0;
+%Initiation:
+K(1) = 0;
+C(1) = c0;
+F(1) = 0;
+T(1) = p*x0;
+D(1) = p;
+%Dynamic progression:
+for i = 2:3000
+    T(i) = T(i-1) + d - h*(C(i-1) - c0);
+    D(i) = D(i-1) - d + h*(C(i-1) - c0);
+    x(i) = T(i)/D(i);
+    if x(i) >= Ra
+         K(i) = 1;
+    else K(i) = 0;
+    end
+    if K(i) == 1
+        F(i) = exp(-c1)*(F(i-1)-1) + 1;
+        C(i) = c*(F(i) - F(i-1)) - c2 + C(i-1);
+    elseif K(i) == 0
+        if i > 150
+            for j = 1:150
+                if K(i-j) == 1
+                    q = 1;
+                end
+            end
+        end
+        if q == 1
+            F(i) = exp(-c1)*(F(i-1)-1) + 1;
+            C(i) = c*(F(i) - F(i-1)) - c2 + C(i-1);
+        else    F(i) = -1;
+                C(i) = c0 + c3*(C(i-1)-c0);
+        end
+    end
+    q = 0;
+end
+C;
+%Output:
+subplot(1,2,1);
+plot(C);
+subplot(1,2,2);
+plot(x);
